@@ -3,7 +3,7 @@
 
 Uses ImageMagick (magick) if available, else falls back to macOS qlmanage.
 """
-import os, shutil, subprocess, sys
+import os, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SVG = os.path.join(HERE, "app-icon.svg")
@@ -24,33 +24,67 @@ ICONSET = [
 
 
 def render_with_magick(out, size):
-    # Render the SVG, then turn the white canvas transparent. The glyph itself
-    # is pure black, so the black pixels (and anti-aliased edge greys within
-    # the fuzz range) are kept.
+    # ImageMagick's SVG delegate always paints a white canvas (ignores
+    # -background none). The Blogger icon is a full circle, so we render it and
+    # then cut the corners off with a circular alpha mask. The white "B" glyph
+    # stays untouched because the mask is geometry-based, not colour-based.
+    tmp = str(out) + ".render.png"
     subprocess.run(
         [
             "magick",
             SVG,
-            "-background",
-            "none",
             "-resize",
             f"{size}x{size}",
-            "-fuzz",
-            "8%",
-            "-transparent",
-            "white",
             "-depth",
             "8",
-            "-colorspace",
-            "sRGB",
             "-type",
             "TrueColorAlpha",
-            "-define",
-            "png:color-type=6",
-            out,
+            tmp,
         ],
         check=True,
     )
+    with tempfile.TemporaryDirectory() as td:
+        mask = os.path.join(td, "mask.png")
+        # circle inscribed in the square: center (c,c), radius c where c=size/2
+        c = size / 2
+        r = c - 0.5  # keep 0.5px inside so the tangent edge stays opaque
+        subprocess.run(
+            [
+                "magick",
+                "-size",
+                f"{size}x{size}",
+                "xc:none",
+                "-fill",
+                "white",
+                "-draw",
+                f"circle {c},{c} {r},0",
+                "-depth",
+                "8",
+                mask,
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "magick",
+                tmp,
+                mask,
+                "-alpha",
+                "off",
+                "-compose",
+                "CopyOpacity",
+                "-composite",
+                "-colorspace",
+                "sRGB",
+                "-type",
+                "TrueColorAlpha",
+                "-define",
+                "png:color-type=6",
+                out,
+            ],
+            check=True,
+        )
+    os.remove(tmp)
 
 
 def render_with_qlmanage(out, size):
