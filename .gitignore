@@ -1,0 +1,28 @@
+# Rust
+/target
+**/target
+Cargo.lock
+!src-tauri/Cargo.lock
+
+# Node
+node_modules
+ui/dist
+ui/node_modules
+
+# macOS
+.DS_Store
+*.dmg
+*.app
+
+# Python
+__pycache__
+*.pyc
+.venv
+.idea
+.vscode
+
+# Local secrets & cache
+*.token.json
+*.key
+src-tauri/.appdata/
+.env

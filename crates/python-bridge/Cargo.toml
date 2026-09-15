@@ -1,0 +1,16 @@
+[package]
+name = "blogger-python"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+pyo3 = { version = "0.29", features = ["auto-initialize"] }
+blogger-client = { path = "../blogger" }
+blogger-cdp = { path = "../cdp" }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+thiserror.workspace = true
+log.workspace = true
